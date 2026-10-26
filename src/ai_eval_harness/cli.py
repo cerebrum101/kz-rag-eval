@@ -46,6 +46,7 @@ def run(config_path: Path, out: Path, no_score: bool) -> None:
 
     _print_cost_table(console, result.cost)
     _print_score_table(console, result.deterministic_scores, title="Deterministic scores")
+    _print_score_table(console, result.language_scores, title="Answer-key scores by language")
     if result.ragas_scores:
         _print_score_table(console, result.ragas_scores, title="Ragas scores")
     else:

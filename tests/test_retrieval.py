@@ -5,7 +5,7 @@ from pathlib import Path
 from ai_eval_harness.config import EvalConfig
 from ai_eval_harness.loaders import load_rows
 from ai_eval_harness.retrieval import BM25Retriever, load_corpus
-from ai_eval_harness.runner import PerRowOutput, _score_deterministic
+from ai_eval_harness.runner import PerRowOutput, _cited_doc_ids, _score_deterministic
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG = REPO_ROOT / "configs" / "qwen-rag-smoke.yaml"
@@ -53,3 +53,7 @@ def test_deterministic_metrics_measure_answers_retrieval_and_citations() -> None
     assert scores["answer_key_hit_rate"] == 0.5
     assert scores["retrieval_recall_at_k"] == 0.5
     assert scores["correct_citation_rate"] == 0.5
+
+
+def test_source_label_is_accepted_inside_citation_brackets() -> None:
+    assert _cited_doc_ids("Twelve digits [Source: iin-en].") == {"iin-en"}

@@ -69,6 +69,7 @@ class EvalResult:
     Set when promptfoo was requested but didn't run."""
 
     deterministic_scores: dict[str, dict[str, float]] = field(default_factory=dict)
+    language_scores: dict[str, dict[str, float]] = field(default_factory=dict)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -79,6 +80,7 @@ class EvalResult:
             "promptfoo_scores": self.promptfoo_scores,
             "promptfoo_note": self.promptfoo_note,
             "deterministic_scores": self.deterministic_scores,
+            "language_scores": self.language_scores,
             "outputs": [
                 {
                     "row_id": o.row_id,
@@ -128,6 +130,20 @@ class EvalResult:
                     failures=_percent(scores.get("failure_rate")),
                 )
             )
+        lines.extend(
+            [
+                "",
+                "## Answer-key hit rate by language",
+                "",
+                "| Model / language | Answer-key hit | Failures |",
+                "|---|---:|---:|",
+            ]
+        )
+        for group_name, scores in self.language_scores.items():
+            lines.append(
+                f"| {group_name} | {_percent(scores.get('answer_key_hit_rate'))} | "
+                f"{_percent(scores.get('failure_rate'))} |"
+            )
         lines.extend(["", "## Per-question outputs", ""])
         for output in self.outputs:
             lines.extend(
@@ -175,6 +191,7 @@ def run_eval(
         outputs.extend(_run_one_model(model, rows, tracker, retriever, config.retrieval.top_k))
 
     deterministic_scores = _score_deterministic(outputs)
+    language_scores = _score_by_language(outputs)
 
     ragas_scores: dict[str, dict[str, float]] = {}
     if score and config.metrics.ragas:
@@ -201,6 +218,7 @@ def run_eval(
         promptfoo_scores=promptfoo_scores,
         promptfoo_note=promptfoo_note,
         deterministic_scores=deterministic_scores,
+        language_scores=language_scores,
     )
 
 
@@ -314,7 +332,7 @@ def _score_deterministic(outputs: list[PerRowOutput]) -> dict[str, dict[str, flo
                 gold_retrieved = set(output.source_ids) & set(output.retrieved_doc_ids)
                 if gold_retrieved:
                     retrieval_hits += 1
-                if any(f"[{doc_id}]" in output.answer for doc_id in gold_retrieved):
+                if _cited_doc_ids(output.answer) & gold_retrieved:
                     citation_hits += 1
         result = {
             "answer_key_hit_rate": answer_hits / len(successful),
@@ -324,6 +342,34 @@ def _score_deterministic(outputs: list[PerRowOutput]) -> dict[str, dict[str, flo
             result["retrieval_recall_at_k"] = retrieval_hits / retrieval_rows
             result["correct_citation_rate"] = citation_hits / retrieval_rows
         scores[model_name] = result
+    return scores
+
+
+def _cited_doc_ids(answer: str) -> set[str]:
+    cited: set[str] = set()
+    for value in re.findall(r"\[([^\]]+)\]", answer):
+        normalized = re.sub(r"^source\s*:\s*", "", value.strip(), flags=re.IGNORECASE)
+        cited.add(normalized)
+    return cited
+
+
+def _score_by_language(outputs: list[PerRowOutput]) -> dict[str, dict[str, float]]:
+    grouped: dict[str, list[PerRowOutput]] = {}
+    for output in outputs:
+        grouped.setdefault(f"{output.model_name}/{output.language or 'unknown'}", []).append(output)
+
+    scores: dict[str, dict[str, float]] = {}
+    for name, group in grouped.items():
+        successful = [output for output in group if not output.error]
+        answer_hits = 0
+        for output in successful:
+            aliases = output.accepted_answers or [output.ground_truth]
+            if any(_normalize(alias) in _normalize(output.answer) for alias in aliases):
+                answer_hits += 1
+        scores[name] = {
+            "answer_key_hit_rate": answer_hits / len(successful) if successful else 0.0,
+            "failure_rate": 1 - len(successful) / len(group),
+        }
     return scores
 
 
