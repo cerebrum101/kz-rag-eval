@@ -1,0 +1,35 @@
+name: qwen-rag-smoke
+description: Qwen baseline versus BM25 RAG on multilingual Kazakhstan public-service questions.
+
+dataset:
+  source: data/kz-public-services-questions.jsonl
+  max_rows: 21
+  include_contexts: false
+
+retrieval:
+  strategy: bm25
+  corpus_source: data/kz-public-services-corpus.jsonl
+  top_k: 2
+
+models:
+  - name: qwen-baseline
+    provider: ollama
+    model_id: qwen2.5:3b
+    use_retrieval: false
+    input_cost_per_mtok: 0
+    output_cost_per_mtok: 0
+    max_tokens: 160
+    temperature: 0
+
+  - name: qwen-rag
+    provider: ollama
+    model_id: qwen2.5:3b
+    use_retrieval: true
+    input_cost_per_mtok: 0
+    output_cost_per_mtok: 0
+    max_tokens: 160
+    temperature: 0
+
+metrics:
+  ragas: []
+  promptfoo: []
