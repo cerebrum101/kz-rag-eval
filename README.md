@@ -14,6 +14,10 @@ Both conditions use the same `qwen2.5:3b` model and deterministic decoding. The 
 
 The current 21-case dataset covers seven underlying facts in parallel Kazakh, Russian, and English. It is an end-to-end smoke benchmark, not evidence for a general claim. The planned first publishable benchmark is 50 underlying questions in three languages (150 cases).
 
+## First local result
+
+The first deterministic run with `qwen2.5:3b` completed without failures. RAG increased exact accepted-answer coverage from 33.3% to 81.0%, while BM25 retrieved a gold source for all 21 questions. The language split is important: RAG scored 100.0% in English, 85.7% in Russian, and 57.1% in Kazakh. See the [run summary](results/qwen-rag-smoke-summary.md) for the protocol, latency, and limitations.
+
 ## Run locally
 
 Requirements: Python 3.10+, [Ollama](https://ollama.com/), and the Qwen model.
