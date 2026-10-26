@@ -4,7 +4,10 @@ users only need to install the providers they actually use."""
 
 from __future__ import annotations
 
+import os
 from typing import Protocol
+
+import httpx
 
 from ai_eval_harness.config import ModelSpec
 
@@ -20,6 +23,8 @@ def get_generator(provider: str) -> Generator:
         return _AnthropicGenerator()
     if provider == "openai":
         return _OpenAIGenerator()
+    if provider == "ollama":
+        return _OllamaGenerator()
     if provider == "local":
         return _LocalEchoGenerator()
     raise ValueError(f"unknown provider: {provider!r}")
@@ -56,8 +61,7 @@ class _OpenAIGenerator:
             from openai import OpenAI  # type: ignore[import-not-found]
         except ImportError as e:
             raise ImportError(
-                "OpenAI provider requires the 'openai' extra: "
-                "pip install 'ai-eval-harness[openai]'"
+                "OpenAI provider requires the 'openai' extra: pip install 'ai-eval-harness[openai]'"
             ) from e
 
         client = OpenAI()
@@ -85,3 +89,30 @@ class _LocalEchoGenerator:
         in_toks = max(1, len(prompt.split()))
         out_toks = max(1, len(text.split()))
         return text, in_toks, out_toks
+
+
+class _OllamaGenerator:
+    """Local Ollama chat API. Start Ollama separately before running an eval."""
+
+    def generate(self, model: ModelSpec, prompt: str) -> tuple[str, int, int]:
+        base_url = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+        response = httpx.post(
+            f"{base_url}/api/chat",
+            json={
+                "model": model.model_id,
+                "stream": False,
+                "messages": [{"role": "user", "content": prompt}],
+                "options": {
+                    "temperature": model.temperature,
+                    "num_predict": model.max_tokens,
+                },
+            },
+            timeout=120.0,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        return (
+            str(payload["message"]["content"]),
+            int(payload.get("prompt_eval_count", 0)),
+            int(payload.get("eval_count", 0)),
+        )

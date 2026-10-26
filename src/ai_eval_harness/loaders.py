@@ -22,9 +22,15 @@ def load_rows(spec: DatasetSpec) -> list[dict[str, object]]:
     cols = spec.columns
     for raw in raw_rows:
         row = {
+            "id": raw.get("id", f"row-{len(out) + 1}"),
+            "language": raw.get("language", ""),
             "question": raw.get(cols["question"]),
             "ground_truth": raw.get(cols["ground_truth"]),
-            "contexts": _coerce_contexts(raw.get(cols["contexts"])),
+            "accepted_answers": _coerce_contexts(raw.get("accepted_answers")),
+            "source_ids": _coerce_contexts(raw.get("source_ids")),
+            "contexts": (
+                _coerce_contexts(raw.get(cols["contexts"])) if spec.include_contexts else []
+            ),
         }
         if row["question"] is None or row["ground_truth"] is None:
             continue  # malformed row

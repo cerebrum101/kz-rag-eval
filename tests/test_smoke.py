@@ -36,21 +36,36 @@ def test_unique_model_names_required() -> None:
             name="dup",
             dataset={"source": str(EXAMPLE_DATA)},
             models=[
-                ModelSpec(name="same", provider="local", model_id="echo",
-                          input_cost_per_mtok=0, output_cost_per_mtok=0),
-                ModelSpec(name="same", provider="local", model_id="echo",
-                          input_cost_per_mtok=0, output_cost_per_mtok=0),
+                ModelSpec(
+                    name="same",
+                    provider="local",
+                    model_id="echo",
+                    input_cost_per_mtok=0,
+                    output_cost_per_mtok=0,
+                ),
+                ModelSpec(
+                    name="same",
+                    provider="local",
+                    model_id="echo",
+                    input_cost_per_mtok=0,
+                    output_cost_per_mtok=0,
+                ),
             ],
         )
 
 
 def test_cost_tracker_computes_usd() -> None:
     model = ModelSpec(
-        name="m", provider="local", model_id="echo",
-        input_cost_per_mtok=10.0, output_cost_per_mtok=30.0,
+        name="m",
+        provider="local",
+        model_id="echo",
+        input_cost_per_mtok=10.0,
+        output_cost_per_mtok=30.0,
     )
     tracker = CostTracker([model])
-    tracker.record(RequestRecord("m", input_tokens=1_000_000, output_tokens=500_000, latency_ms=120.0))
+    tracker.record(
+        RequestRecord("m", input_tokens=1_000_000, output_tokens=500_000, latency_ms=120.0)
+    )
     [summary] = tracker.summary()
     # 1M input * $10 + 0.5M output * $30 = $10 + $15 = $25
     assert summary.cost_usd == pytest.approx(25.0)
@@ -90,4 +105,14 @@ def test_result_serializes_to_json(tmp_path: Path) -> None:
     assert path.exists()
     payload = path.read_text()
     assert "rag-baseline-serialize" in payload
-    assert "outputs_preview" in payload
+    assert '"outputs"' in payload
+    assert path.with_suffix(".md").exists()
+
+
+def test_qwen_comparison_config_has_baseline_and_rag() -> None:
+    cfg = EvalConfig.from_yaml(REPO_ROOT / "configs" / "qwen-rag-smoke.yaml")
+    rows = load_rows(cfg.dataset)
+    assert len(rows) == 21
+    assert all(row["contexts"] == [] for row in rows)
+    assert cfg.retrieval.strategy == "bm25"
+    assert [model.use_retrieval for model in cfg.models] == [False, True]

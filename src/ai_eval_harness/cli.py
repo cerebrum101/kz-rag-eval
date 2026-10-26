@@ -21,10 +21,17 @@ def main() -> None:
 
 @main.command()
 @click.argument("config_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--out", type=click.Path(file_okay=False, path_type=Path), default=Path("runs"),
-              help="Directory to write the run report. Default: ./runs")
-@click.option("--no-score", is_flag=True,
-              help="Skip Ragas scoring. Useful when judge-model creds aren't available.")
+@click.option(
+    "--out",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=Path("runs"),
+    help="Directory to write the run report. Default: ./runs",
+)
+@click.option(
+    "--no-score",
+    is_flag=True,
+    help="Skip Ragas scoring. Useful when judge-model creds aren't available.",
+)
 def run(config_path: Path, out: Path, no_score: bool) -> None:
     """Run an eval defined by CONFIG_PATH (YAML)."""
     console = Console()
@@ -38,6 +45,7 @@ def run(config_path: Path, out: Path, no_score: bool) -> None:
     report_path = result.write(out)
 
     _print_cost_table(console, result.cost)
+    _print_score_table(console, result.deterministic_scores, title="Deterministic scores")
     if result.ragas_scores:
         _print_score_table(console, result.ragas_scores, title="Ragas scores")
     else:

@@ -3,15 +3,13 @@ requires = ["hatchling>=1.21"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ai-eval-harness"
+name = "kz-rag-eval"
 version = "0.1.0"
-description = "Open-source eval harness for RAG and agent systems. Ragas + promptfoo + cost-tracking, model-agnostic on principle."
+description = "Multilingual baseline-vs-RAG evaluation on Kazakhstan public information."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
-authors = [
-  { name = "Paiteq", email = "team@paiteq.com" },
-]
+authors = [{ name = "Atay Kim" }]
 keywords = ["llm", "rag", "evaluation", "ragas", "promptfoo", "benchmarks", "ai"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -57,14 +55,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/paiteq/ai-eval-harness"
-Repository = "https://github.com/paiteq/ai-eval-harness"
-Issues = "https://github.com/paiteq/ai-eval-harness/issues"
-Documentation = "https://github.com/paiteq/ai-eval-harness#readme"
-"Benchmark results" = "https://www.getwidget.dev/benchmarks/"
+Upstream = "https://github.com/paiteq/ai-eval-harness"
 
 [project.scripts]
 ai-eval = "ai_eval_harness.cli:main"
+kz-rag-eval = "ai_eval_harness.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ai_eval_harness"]
